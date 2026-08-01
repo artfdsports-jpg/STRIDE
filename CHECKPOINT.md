@@ -163,3 +163,34 @@ The dictionary metadata encoding matches `jsx/chisel-meta.jsx` exactly, so
 constraints survive moving between the panel and the plugin.
 
 334 assertions across six suites.
+
+### P7 - docs and version (done)
+README rewritten around what 2.0 actually is, leading with the two-circles
+workflow. Manifest and engine both at 2.0.0.
+
+## Known limits, stated plainly
+
+- **Each constraint rebuild is one undo step.** Illustrator gives extensions no
+  edit event, so sync is polled; there is no way to fold the rebuild into the
+  user's own undo entry from CEP. Auto-sync can be turned off.
+- **`native/src` has never been compiled.** It needs Adobe's SDK, which cannot
+  be redistributed. `native/core` is fully tested; the bridge is a worked
+  specification. See `native/README.md`.
+- **Letter-key modifiers during a native drag are not implemented.**
+  Shift/Option/Command are. A `T`-to-tangent-constrain binding needs the SDK's
+  key handling, and guessing a selector name would have been worse than a
+  documented gap.
+- **Circle recognition is circles only.** Ellipse-to-ellipse common tangents
+  have no closed form and would need a numeric solver. Nothing stops that being
+  added; it was not in scope.
+
+## If picking this up cold
+
+1. `npm test` and the cmake block in the README should both be green before you
+   change anything.
+2. `jsx/chisel-tangency.jsx` is pure geometry with no document access - start
+   there for anything about *what* shape gets built.
+3. `jsx/chisel-constraints.jsx` decides *when* it gets rebuilt. The two rules it
+   rests on are at the top of the file and are worth reading before editing it.
+4. `native/core/` mirrors the jsx geometry deliberately. A fix in one belongs in
+   both, and the two test suites assert the same intent so a divergence shows up.
