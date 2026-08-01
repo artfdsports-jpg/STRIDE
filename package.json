@@ -1,0 +1,9 @@
+{
+  "name": "chisel",
+  "version": "2.0.0",
+  "description": "Precision path tools and tangency constraints for Adobe Illustrator",
+  "private": true,
+  "scripts": {
+    "test": "node test-geometry.js && node test-tangency.js && node test-constraints.js"
+  }
+}

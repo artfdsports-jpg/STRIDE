@@ -55,3 +55,36 @@ outline - the closed "two circles joined at their tangents" shape.
 `test-tangency.js`: 59 assertions, all passing. Run with `node test-tangency.js`.
 Caught one real bug: the half angle for a tangent from an external point is
 asin(r/d), not acos.
+
+### P3 - constraint graph and solver (done)
+`jsx/chisel-constraints.jsx`. This is the layer that makes tangency *stick*.
+
+Records can carry several roles at once (a path can be a tangent link, hold
+tangent locks on its own anchors, and be welded to a neighbour), so the solve
+runs in three waves: generated geometry, then welds, then tangent locks.
+
+Constraint kinds: `tanlink` (belt or single tangent between two circles),
+`tancircle` (circle of given radius tangent to two others), `tanline` (tangent
+from a live anchor to a circle), plus `locks` (G1 continuity) and `weld` fields
+on any record.
+
+Auto-sync: `CMD.syncProbe` digests driver bounds, re-solves only on change, and
+returns the *post-solve* digest so an idle document costs one cheap call.
+
+`test-stub.js` is a working Illustrator DOM stand-in - it is what makes any of
+this testable. `test-constraints.js`: 73 assertions.
+
+Four real bugs caught here:
+- the sync reply was `status|ok|broken|hash` while the hash itself contained
+  `|`, so the panel never recovered the digest and re-solved forever. Hash is
+  now a short FNV digest.
+- `circleOfPath` fitted sampled curve points, but Illustrator's circles bulge
+  0.027% between anchors, so every radius came out slightly large. Now fits
+  anchors and uses samples only to verify.
+- registering an already-parametric circle as a driver stamped `kind=circle`
+  over its own record, destroying the constraint that generated it.
+- a satisfied lock still rewrote its path, which moved the change digest and
+  made auto-sync solve on every tick. Locks and welds are now true no-ops when
+  already satisfied, and there is a test that fails if that regresses.
+
+`npm test` runs all three suites. 161 assertions, all passing.

@@ -124,11 +124,32 @@ function fitCircle(samples) {
  * constructions themselves only need a centre and a radius.
  */
 function circleOfPath(path) {
-    var pts, fit;
+    var pts, fit, i, anchors, dense, dev, worst;
     try { pts = readPath(path); } catch (e) { return null; }
     if (!pts || pts.length < 2) { return null; }
-    fit = fitCircle(samplePath(pts, path.closed, 6));
+
+    /*
+     * Fit the anchors, not the sampled curve. Illustrator's own circles are
+     * four cubics whose anchors sit exactly on the true circle while the curve
+     * between them bulges out by about 0.027% of the radius. Fitting samples
+     * therefore returns a radius a shade too large, and every tangent built
+     * from it inherits that error. Fitting anchors returns the exact radius,
+     * and the dense samples are then used only to prove it really is a circle.
+     */
+    anchors = [];
+    for (i = 0; i < pts.length; i++) { anchors.push(pts[i].a); }
+    fit = (anchors.length >= 3) ? fitCircle(anchors) : null;
+    if (!fit) { fit = fitCircle(samplePath(pts, path.closed, 6)); }
     if (!fit) { return null; }
+
+    dense = samplePath(pts, path.closed, 6);
+    worst = 0;
+    for (i = 0; i < dense.length; i++) {
+        dev = Math.abs(vDist(dense[i], fit.c) - fit.r);
+        if (dev > worst) { worst = dev; }
+    }
+    fit.dev = worst;
+    fit.rel = (fit.r > TAN.EPS) ? worst / fit.r : 1e9;
     fit.ok = (fit.rel <= TAN.CIRCLE_TOL) && path.closed;
     return fit;
 }
