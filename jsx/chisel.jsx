@@ -15,7 +15,7 @@
 
 var CH = {};
 CH.EPS = 1e-9;
-CH.VERSION = "1.0.0";
+CH.VERSION = "2.0.0";
 
 function chNum(v, d) { return (typeof v === "number" && !isNaN(v)) ? v : d; }
 function chStr(v, d) { return (typeof v === "string") ? v : d; }
@@ -1720,3 +1720,75 @@ function chiselRun(cmd, argLiteral) {
 }
 
 function chiselVersion() { return CH.VERSION; }
+
+//= = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+// 9. Module loader
+//
+// CEP's manifest points ScriptPath at exactly one file, so everything past the
+// core engine is loaded from here. Splitting the engine matters more than it
+// looks: ExtendScript reports a syntax error anywhere in a file by refusing to
+// define anything in it, so a typo in the tangency solver would otherwise take
+// the entire panel down with it. Loaded this way, each module fails alone and
+// says so.
+//= = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+
+CH.MODULES = [
+    "chisel-meta.jsx",
+    "chisel-tangency.jsx",
+    "chisel-constraints.jsx",
+    "chisel-inspector.jsx"
+];
+
+CH.loaded = {};
+CH.bootLog = [];
+
+function chiselJsxFolder() {
+    // $.fileName is the file currently being evaluated, which is this one when
+    // Illustrator loads ScriptPath. It is empty when the engine is eval'd as a
+    // string, so callers can override with an explicit path.
+    var fn = "";
+    try { fn = String($.fileName); } catch (e) { fn = ""; }
+    if (!fn.length) { return ""; }
+    var cut = fn.lastIndexOf("/");
+    if (cut < 0) { cut = fn.lastIndexOf("\\"); }
+    return cut < 0 ? "" : fn.substring(0, cut);
+}
+
+/*
+ * folder: absolute path to the jsx directory. The panel passes the extension
+ * path it gets from CSInterface, which is authoritative; the $.fileName probe
+ * is the fallback for running the engine outside CEP.
+ */
+function chiselBoot(folder) {
+    var i, name, f, ok, errs = [];
+    CH.bootLog = [];
+    if (!folder || !String(folder).length) { folder = chiselJsxFolder(); }
+    if (!folder || !String(folder).length) { return "Boot failed: cannot locate the jsx folder."; }
+    folder = String(folder).replace(/[\/\\]+$/, "");
+
+    for (i = 0; i < CH.MODULES.length; i++) {
+        name = CH.MODULES[i];
+        ok = false;
+        try {
+            f = new File(folder + "/" + name);
+            if (f.exists) {
+                $.evalFile(f);
+                ok = true;
+            } else {
+                errs.push(name + ": not found");
+            }
+        } catch (e) {
+            errs.push(name + ": " + e.message + " (line " + (e.line || "?") + ")");
+        }
+        CH.loaded[name] = ok;
+        CH.bootLog.push(name + (ok ? " ok" : " FAILED"));
+    }
+    if (errs.length) { return "Boot errors: " + errs.join(" | "); }
+    return "ok " + CH.VERSION;
+}
+
+// Self-boot when Illustrator loads this file as ScriptPath. Wrapped because a
+// module failure must never stop the core commands from working.
+try {
+    if (chiselJsxFolder().length) { chiselBoot(chiselJsxFolder()); }
+} catch (bootErr) {}
