@@ -133,3 +133,33 @@ checks markup against controller against engine, and that the jsx stays inside
 the ES3 dialect ExtendScript accepts.
 
 246 assertions across five suites.
+
+### P6 - native plugin (done, with an honest split)
+`native/` replaces the old aspirational ROADMAP with actual source.
+
+**`native/core/` is verified.** No Illustrator types, builds with any C++17
+compiler, 88 assertions passing, zero warnings under `-Wall -Wextra -Wpedantic`:
+
+```bash
+cmake -S native/core -B native/core/build && cmake --build native/core/build
+./native/core/build/chisel_core_tests
+```
+
+It holds the geometry plus the things that only matter once there is a cursor
+and so have no equivalent in the panel: closest point on a curve (coarse sweep
+then Newton - Newton alone settles on the wrong lobe of an S-curve), hit testing
+with anchors outranking segments, snap resolution ordered by *kind* before
+distance so the snap does not flicker between two near-equal targets, and a
+spatial hash for coincident anchors so welding is not O(n*m) on mouse-up.
+
+**`native/src/` is not verified** and says so in `native/README.md`. It is the
+SDK bridge and has never been compiled, because that needs Adobe's SDK, which
+cannot be redistributed. Real suite names and signatures, but treat it as a
+worked specification. Letter-key modifiers during a drag are deliberately *not*
+implemented rather than guessed at - Shift/Option/Command are read from
+`message->event->modifiers` every tick, which is solid.
+
+The dictionary metadata encoding matches `jsx/chisel-meta.jsx` exactly, so
+constraints survive moving between the panel and the plugin.
+
+334 assertions across six suites.
