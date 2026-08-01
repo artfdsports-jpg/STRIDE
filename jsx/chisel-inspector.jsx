@@ -237,6 +237,36 @@ CMD.inspect = function (o) {
     return metaSerialize(out);
 };
 
+/*
+ * One call per panel refresh, doing both jobs: read the focused anchor, and if
+ * auto-sync is on, re-solve when a driver has moved.
+ *
+ * Splitting these into two evalScripts would double the bridge traffic on a
+ * loop that runs several times a second, and CEP's bridge is the slow part of
+ * any panel - not the geometry.
+ *
+ * Passing no previous hash records the current one without solving, so opening
+ * the panel never fires a solve the user did not ask for.
+ */
+CMD.tick = function (o) {
+    var out = "";
+    if (chBool(o.sync, false)) {
+        var reg = conRegistry(false);
+        var h = conStateHash(reg);
+        var prev = chStr(o.hash, "");
+        if (prev.length && h !== prev) {
+            var r = conSolveAll(false);
+            h = conStateHash(conRegistry(false));
+            out += "solved=" + r.ok + ";sbroken=" + (r.broken + r.impossible) + ";";
+            // Only this branch touched the document, so only this branch pays
+            // for a redraw.
+            try { app.redraw(); } catch (e) {}
+        }
+        out += "shash=" + h + ";";
+    }
+    return out + CMD.inspect(o);
+};
+
 //= = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 // 3. Writeback
 //= = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =

@@ -111,3 +111,25 @@ Area uses Green's theorem with 3-point Gauss-Legendre, which is *exact* for
 cubics - shoelace over a sampled polygon under-reports a circle by 0.6%.
 
 `test-inspector.js`: 62 assertions. 223 total across four suites.
+
+### P5 - panel rebuilt around the path tool (done)
+Four tabs (Path, Tangency, Shape, Make) replacing the single accordion, which
+had outgrown itself. Path opens on the inspector; Tangency holds connect,
+tangent circle, tangent from point, locks, welds and sync.
+
+`CMD.tick` does the whole live refresh in one bridge call - reading the anchor
+and re-solving constraints - because CEP's bridge is the slow part of a panel,
+not the geometry. Read-only commands no longer trigger `app.redraw`, which was
+costing frames on every poll.
+
+The poll guards against overlap (`LIVE.busy`), never overwrites a field the
+user is typing into, and refreshes the stored fingerprint after every command
+so the next tick cannot fire a spurious solve and undo step.
+
+`test-panel.js`: 23 static wiring assertions. A CEP panel fails *silently* -
+a button pointing at a missing command does nothing, and a renamed field id
+kills the controller mid-refresh with no error anywhere the user will look. It
+checks markup against controller against engine, and that the jsx stays inside
+the ES3 dialect ExtendScript accepts.
+
+246 assertions across five suites.

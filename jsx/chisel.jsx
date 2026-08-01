@@ -1712,12 +1712,22 @@ function chiselRun(cmd, argLiteral) {
 
     try {
         var res = CMD[cmd](o);
-        try { app.redraw(); } catch (e2) {}
+        // Read-only commands must not redraw. The panel polls several of these
+        // a second, and redrawing on every poll costs real frames on a heavy
+        // document while changing nothing on screen. Commands that sometimes
+        // change the document, like tick, redraw themselves when they do.
+        if (!CH.QUIET[cmd]) {
+            try { app.redraw(); } catch (e2) {}
+        }
         return res;
     } catch (err) {
         return "Error: " + err.message + " (line " + (err.line || "?") + ")";
     }
 }
+
+CH.QUIET = {
+    info: 1, inspect: 1, tick: 1, constraintsInfo: 1, syncHash: 1, countRedundant: 1
+};
 
 function chiselVersion() { return CH.VERSION; }
 

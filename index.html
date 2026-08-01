@@ -16,10 +16,103 @@
   </div>
 </header>
 
+<nav class="tabs" id="tabs">
+  <button class="on" data-tab="path">Path</button>
+  <button data-tab="tangent">Tangency</button>
+  <button data-tab="shape">Shape</button>
+  <button data-tab="make">Make</button>
+</nav>
+
 <main id="scroll">
 
+<!-- ============================ PATH ================================= -->
+<div class="tab on" data-tab="path">
+
+  <!-- PATH TOOL -------------------------------------------------------- -->
+  <section class="sec open" data-sec="tool">
+    <h2>Path tool</h2>
+    <div class="body">
+
+      <div class="navrow">
+        <button class="ghost sm" data-step="first" title="First anchor">&#124;&lsaquo;</button>
+        <button class="ghost sm" data-step="prev" title="Previous anchor">&lsaquo;</button>
+        <div class="anchorlbl mono" id="anchorLbl">no anchor</div>
+        <button class="ghost sm" data-step="next" title="Next anchor">&rsaquo;</button>
+        <button class="ghost sm" data-step="last" title="Last anchor">&rsaquo;&#124;</button>
+      </div>
+
+      <div class="fields">
+        <label class="fld"><span>X</span><input type="number" id="fX" class="mono live" step="0.5"></label>
+        <label class="fld"><span>Y</span><input type="number" id="fY" class="mono live" step="0.5"></label>
+      </div>
+      <div class="fields">
+        <label class="fld"><span>In length</span><input type="number" id="fInLen" class="mono live" step="0.5" min="0"></label>
+        <label class="fld"><span>In angle</span><input type="number" id="fInAng" class="mono live" step="1"></label>
+      </div>
+      <div class="fields">
+        <label class="fld"><span>Out length</span><input type="number" id="fOutLen" class="mono live" step="0.5" min="0"></label>
+        <label class="fld"><span>Out angle</span><input type="number" id="fOutAng" class="mono live" step="1"></label>
+      </div>
+      <p class="hint">Enter commits. Values apply to every selected anchor, so one X aligns them all.</p>
+
+      <dl class="meter">
+        <div><dt>Segment before</dt><dd class="mono" id="mSegPrev">&mdash;</dd></div>
+        <div><dt>Segment after</dt><dd class="mono" id="mSegNext">&mdash;</dd></div>
+        <div><dt>Curvature in / out</dt><dd class="mono" id="mCurv">&mdash;</dd></div>
+        <div><dt>Path length</dt><dd class="mono" id="mLen">&mdash;</dd></div>
+        <div><dt>Enclosed area</dt><dd class="mono" id="mArea">&mdash;</dd></div>
+      </dl>
+
+      <h3>Nudge</h3>
+      <div class="seg" id="nudgeTarget">
+        <button class="on" data-val="anchor">Anchor</button>
+        <button data-val="in">In</button>
+        <button data-val="out">Out</button>
+        <button data-val="handles">Handles</button>
+      </div>
+      <div class="nudgerow">
+        <label class="fld"><span>Step</span><input type="number" id="nStep" class="mono" value="1" step="0.5" min="0.001"></label>
+        <div class="pad">
+          <button data-nudge="0,-1" title="Up">&uarr;</button>
+          <button data-nudge="-1,0" title="Left">&larr;</button>
+          <button data-nudge="1,0" title="Right">&rarr;</button>
+          <button data-nudge="0,1" title="Down">&darr;</button>
+        </div>
+      </div>
+
+      <h3>Insert on segment</h3>
+      <div class="seg" id="insMode">
+        <button class="on" data-val="length">Arc length</button>
+        <button data-val="t">Bezier t</button>
+      </div>
+      <div class="pair">
+        <input type="number" id="insAt" class="mono" value="0.5" step="0.05" min="0.01" max="0.99">
+        <button data-cmd="insertOnSegment" data-args="insertArgs">Insert</button>
+      </div>
+      <p class="hint">Inserts after the focused anchor. Arc length is what people mean by halfway.</p>
+
+      <div class="split">
+        <button data-cmd="matchHandles" data-args="{what:'length'}">Match lengths</button>
+        <button data-cmd="matchHandles" data-args="{what:'angle'}">Match angles</button>
+      </div>
+
+      <h3>Display</h3>
+      <div class="seg" id="spaceSeg">
+        <button class="on" data-val="artboard">Artboard</button>
+        <button data-val="doc">Document</button>
+      </div>
+      <div class="seg" id="unitSeg">
+        <button class="on" data-val="pt">pt</button>
+        <button data-val="px">px</button>
+        <button data-val="mm">mm</button>
+        <button data-val="in">in</button>
+      </div>
+      <p class="hint">Artboard measures from the top left with Y running down, matching the Transform panel. Document uses raw ruler coordinates.</p>
+    </div>
+  </section>
+
   <!-- CLEAN ------------------------------------------------------------ -->
-  <section class="sec open" data-sec="clean">
+  <section class="sec" data-sec="clean">
     <h2>Clean</h2>
     <div class="body">
       <label class="row">
@@ -46,8 +139,7 @@
         <button data-cmd="makeSmooth" data-args="smoothArgs">Smooth</button>
         <button data-cmd="makeCorner">Corner</button>
       </div>
-      <label class="row">
-        <span>Smoothing ratio</span>
+      <label class="row"><span>Smoothing ratio</span>
         <input type="number" id="smRatio" class="mono" value="0.4" step="0.05" min="0.05" max="2">
       </label>
       <div class="split">
@@ -95,7 +187,7 @@
         <input type="number" id="hAng" class="mono" value="0" step="1">
         <button data-cmd="handleTransform" data-args="angArgs">Set angle&deg;</button>
       </div>
-      <p class="hint">Hold nothing, click once. Values apply to every selected anchor.</p>
+      <p class="hint">Applies to every selected anchor at once.</p>
     </div>
   </section>
 
@@ -120,9 +212,116 @@
     </div>
   </section>
 
-  <!-- TANGENCIES ------------------------------------------------------- -->
+</div>
+
+<!-- ========================== TANGENCY =============================== -->
+<div class="tab" data-tab="tangent">
+
+  <!-- CONNECT ---------------------------------------------------------- -->
+  <section class="sec open" data-sec="connect">
+    <h2>Connect circles</h2>
+    <div class="body">
+      <p class="hint">Select two circles. Chisel finds their common tangents, builds the geometry, and locks it to both. Move or scale either circle afterwards and it rebuilds itself.</p>
+      <div class="seg" id="tcStyle">
+        <button class="on" data-val="belt">Belt</button>
+        <button data-val="lines">Two tangents</button>
+        <button data-val="line">One tangent</button>
+      </div>
+      <label class="check"><input type="checkbox" id="tcCrossed"><span>Crossed (the tangents pass between the circles)</span></label>
+      <div class="seg" id="tcSide">
+        <button class="on" data-val="1">Side A</button>
+        <button data-val="-1">Side B</button>
+      </div>
+      <button class="primary" data-cmd="tanConnect" data-args="tanConnectArgs">Connect at tangents</button>
+      <p class="hint">Belt gives one closed outline wrapping both circles: a pulley, a capsule, a chain link. Side only applies to a single tangent.</p>
+    </div>
+  </section>
+
+  <!-- TANGENT CIRCLE --------------------------------------------------- -->
+  <section class="sec" data-sec="tancircle">
+    <h2>Tangent circle</h2>
+    <div class="body">
+      <p class="hint">A new circle of a chosen radius touching both selected circles, locked to them.</p>
+      <label class="row"><span>Radius</span>
+        <input type="number" id="tkRadius" class="mono" value="50" min="0.1" step="1">
+      </label>
+      <div class="seg" id="tkMode">
+        <button class="on" data-val="ee">Outside both</button>
+        <button data-val="ii">Around both</button>
+        <button data-val="ei">Around the first</button>
+        <button data-val="ie">Around the second</button>
+      </div>
+      <div class="seg" id="tkPick">
+        <button class="on" data-val="0">Solution 1</button>
+        <button data-val="1">Solution 2</button>
+      </div>
+      <button class="primary" data-cmd="tanCircleAdd" data-args="tanCircleArgs">Place tangent circle</button>
+    </div>
+  </section>
+
+  <!-- TANGENT FROM POINT ----------------------------------------------- -->
+  <section class="sec" data-sec="tanpoint">
+    <h2>Tangent from a point</h2>
+    <div class="body">
+      <p class="hint">Select a circle, plus one path with a single anchor selected. The tangent stays attached to that anchor as it moves.</p>
+      <div class="seg" id="tpSide">
+        <button class="on" data-val="1">Side A</button>
+        <button data-val="-1">Side B</button>
+      </div>
+      <button class="primary" data-cmd="tanFromPoint" data-args="tanPointArgs">Draw tangent</button>
+    </div>
+  </section>
+
+  <!-- LOCKS ------------------------------------------------------------ -->
+  <section class="sec" data-sec="locks">
+    <h2>Locks</h2>
+    <div class="body">
+      <h3>Tangent continuity</h3>
+      <p class="hint">Forces the two handles at an anchor to stay collinear, so a curve you drew smooth stays smooth through every later edit.</p>
+      <div class="split">
+        <button data-cmd="lockTangent">Lock anchors</button>
+        <button class="ghost" data-cmd="unlockTangent">Release</button>
+      </div>
+
+      <h3>Weld</h3>
+      <p class="hint">Holds an anchor on one path to an anchor on another. Select two paths with one anchor selected on each; the first leads.</p>
+      <div class="seg" id="wMode">
+        <button class="on" data-val="shape">Whole shape follows</button>
+        <button data-val="point">Only the anchor follows</button>
+      </div>
+      <label class="check"><input type="checkbox" id="wG1" checked><span>Match tangent direction across the join</span></label>
+      <div class="split">
+        <button data-cmd="weldPoints" data-args="weldArgs">Weld</button>
+        <button class="ghost" data-cmd="unweld">Unweld</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- SYNC ------------------------------------------------------------- -->
+  <section class="sec open" data-sec="sync">
+    <h2>Sync</h2>
+    <div class="body">
+      <label class="check"><input type="checkbox" id="autoSync" checked><span>Keep locked geometry up to date automatically</span></label>
+      <p class="hint">Illustrator tells extensions nothing about edits as they happen, so Chisel watches for movement and rebuilds. Each rebuild is one undo step. Turn this off while working on something unrelated.</p>
+      <button class="primary" data-cmd="solveAll">Solve now</button>
+      <div class="split">
+        <button class="ghost" data-cmd="selectDrivers">Select drivers</button>
+        <button class="ghost" data-cmd="releaseSelection">Release selection</button>
+      </div>
+      <dl class="meter">
+        <div><dt>Locked objects</dt><dd class="mono" id="cLinks">0</dd></div>
+        <div><dt>Driver circles</dt><dd class="mono" id="cCircles">0</dd></div>
+        <div><dt>Tangent locks</dt><dd class="mono" id="cLocks">0</dd></div>
+        <div><dt>Welds</dt><dd class="mono" id="cWelds">0</dd></div>
+        <div><dt>Broken</dt><dd class="mono" id="cBroken">0</dd></div>
+      </dl>
+      <p class="hint">Release turns the selection back into ordinary artwork and leaves the geometry exactly where it is.</p>
+    </div>
+  </section>
+
+  <!-- AXIS TANGENCIES -------------------------------------------------- -->
   <section class="sec" data-sec="tan">
-    <h2>Tangencies</h2>
+    <h2>Axis tangencies</h2>
     <div class="body">
       <div class="seg" id="tanSeg">
         <button class="on" data-val="both">Both</button>
@@ -135,8 +334,13 @@
     </div>
   </section>
 
+</div>
+
+<!-- ============================ SHAPE ================================ -->
+<div class="tab" data-tab="shape">
+
   <!-- CORNERS ---------------------------------------------------------- -->
-  <section class="sec" data-sec="corners">
+  <section class="sec open" data-sec="corners">
     <h2>Corners</h2>
     <div class="body">
       <label class="row"><span>Radius (pt)</span>
@@ -208,11 +412,14 @@
     </div>
   </section>
 
-  <!-- GENERATE --------------------------------------------------------- -->
-  <section class="sec" data-sec="gen">
-    <h2>Generate</h2>
+</div>
+
+<!-- ============================= MAKE ================================ -->
+<div class="tab" data-tab="make">
+
+  <section class="sec open" data-sec="gen">
+    <h2>Roulette</h2>
     <div class="body">
-      <h3>Roulette</h3>
       <div class="seg" id="roKind">
         <button class="on" data-val="hypo">Hypotrochoid</button>
         <button data-val="epi">Epitrochoid</button>
@@ -240,8 +447,12 @@
       </label>
       <label class="check"><input type="checkbox" id="roCentre" checked><span>Centre on screen</span></label>
       <button class="primary" data-cmd="roulette" data-args="rouletteArgs">Create roulette</button>
+    </div>
+  </section>
 
-      <h3>Delaunay</h3>
+  <section class="sec" data-sec="delaunay">
+    <h2>Delaunay</h2>
+    <div class="body">
       <div class="seg" id="dlSrc">
         <button class="on" data-val="anchors">From anchors</button>
         <button data-val="centres">From centres</button>
@@ -253,6 +464,8 @@
       <button data-cmd="delaunay" data-args="delaunayArgs">Triangulate</button>
     </div>
   </section>
+
+</div>
 
 </main>
 
