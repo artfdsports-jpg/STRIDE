@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ExtensionManifest Version="9.0"
+                   ExtensionBundleId="com.darwin.chisel"
+                   ExtensionBundleVersion="1.0.0"
+                   ExtensionBundleName="Chisel"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+
+  <ExtensionList>
+    <Extension Id="com.darwin.chisel.panel" Version="1.0.0"/>
+  </ExtensionList>
+
+  <ExecutionEnvironment>
+    <HostList>
+      <!-- ILST 29.0 = Illustrator 2025, 30.x = Illustrator 2026.
+           Open-ended upper bound for local installs. If you ever sign this as
+           a .zxp for Adobe's Distribution Platform, lower the ceiling to the
+           highest shipping version (for example [29.0,30.9]) or the upload
+           will be rejected for exceeding the maximum supported version. -->
+      <Host Name="ILST" Version="[29.0,99.9]"/>
+    </HostList>
+    <LocaleList>
+      <Locale Code="All"/>
+    </LocaleList>
+    <RequiredRuntimeList>
+      <RequiredRuntime Name="CSXS" Version="9.0"/>
+    </RequiredRuntimeList>
+  </ExecutionEnvironment>
+
+  <DispatchInfoList>
+    <Extension Id="com.darwin.chisel.panel">
+      <DispatchInfo>
+        <Resources>
+          <MainPath>./index.html</MainPath>
+          <ScriptPath>./jsx/chisel.jsx</ScriptPath>
+          <CEFCommandLine>
+            <Parameter>--allow-file-access</Parameter>
+            <Parameter>--allow-file-access-from-files</Parameter>
+          </CEFCommandLine>
+        </Resources>
+        <Lifecycle>
+          <AutoVisible>true</AutoVisible>
+        </Lifecycle>
+        <UI>
+          <Type>Panel</Type>
+          <Menu>Chisel</Menu>
+          <Geometry>
+            <Size><Height>700</Height><Width>300</Width></Size>
+            <MinSize><Height>320</Height><Width>250</Width></MinSize>
+            <MaxSize><Height>2400</Height><Width>600</Width></MaxSize>
+          </Geometry>
+        </UI>
+      </DispatchInfo>
+    </Extension>
+  </DispatchInfoList>
+</ExtensionManifest>

@@ -1,0 +1,277 @@
+/* Chisel
+   Design tokens. The panel lives inside Illustrator's dark chrome, so the
+   greys are tuned to sit next to it rather than compete. The one deliberate
+   accent is brass: the colour of a honed bevel edge, used only on the active
+   section rail and primary actions. Nothing else is coloured. */
+
+:root {
+  --ink:        #1b1b1b;   /* panel ground */
+  --ink-2:      #232323;   /* section body */
+  --raised:     #2f2f2f;   /* controls */
+  --raised-hi:  #3b3b3b;   /* hover */
+  --rule:       #383838;
+  --text:       #d4d4d4;
+  --text-dim:   #8b8b8b;
+  --text-faint: #6a6a6a;
+  --brass:      #c9a24a;   /* the bevel */
+  --brass-dim:  #7a6330;
+
+  --ui: -apple-system, "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+  --mono: ui-monospace, "SF Mono", Menlo, Consolas, "Roboto Mono", monospace;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  height: 100%;
+  background: var(--ink);
+  color: var(--text);
+  font: 11px/1.45 var(--ui);
+  -webkit-user-select: none;
+  user-select: none;
+  overflow: hidden;
+}
+
+/* ---- Top bar ---------------------------------------------------------- */
+
+.bar {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 10px 7px;
+  background: var(--ink);
+  border-bottom: 1px solid var(--rule);
+}
+
+.mark {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  color: var(--brass);
+}
+
+.readout {
+  display: flex;
+  gap: 9px;
+  font: 10px/1 var(--mono);
+  color: var(--text-faint);
+}
+.readout b { color: var(--text); font-weight: 500; }
+
+/* ---- Scroll region ---------------------------------------------------- */
+
+#scroll {
+  height: calc(100% - 32px - 24px);
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+#scroll::-webkit-scrollbar { width: 8px; }
+#scroll::-webkit-scrollbar-thumb { background: #3d3d3d; border-radius: 4px; }
+#scroll::-webkit-scrollbar-track { background: transparent; }
+
+/* ---- Sections --------------------------------------------------------- */
+
+.sec { border-bottom: 1px solid var(--rule); }
+
+.sec > h2 {
+  position: relative;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  padding: 9px 10px 9px 14px;
+  cursor: pointer;
+}
+.sec > h2::before {
+  /* the bevel: 2px of brass down the left edge of whichever section is open */
+  content: "";
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 2px;
+  background: transparent;
+  transition: background 120ms ease;
+}
+.sec.open > h2 { color: var(--text); }
+.sec.open > h2::before { background: var(--brass); }
+.sec > h2:hover { color: var(--text); }
+
+.sec > h2::after {
+  content: "+";
+  position: absolute;
+  right: 10px; top: 50%;
+  transform: translateY(-50%);
+  font: 12px/1 var(--mono);
+  color: var(--text-faint);
+}
+.sec.open > h2::after { content: "\2013"; }
+
+.sec > .body { display: none; padding: 2px 10px 12px 14px; background: var(--ink-2); }
+.sec.open > .body { display: block; }
+
+.sec h3 {
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  margin: 14px 0 6px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid var(--rule);
+}
+
+/* ---- Controls --------------------------------------------------------- */
+
+button {
+  display: block;
+  width: 100%;
+  padding: 6px 8px;
+  margin-bottom: 5px;
+  background: var(--raised);
+  color: var(--text);
+  border: 1px solid #3a3a3a;
+  border-radius: 2px;
+  font: 11px/1.2 var(--ui);
+  text-align: center;
+  cursor: pointer;
+  transition: background 90ms ease, border-color 90ms ease;
+}
+button:hover { background: var(--raised-hi); border-color: #4a4a4a; }
+button:active { background: #262626; }
+button:focus-visible { outline: 1px solid var(--brass); outline-offset: 1px; }
+
+button.primary {
+  border-color: var(--brass-dim);
+  color: #f0e2c2;
+}
+button.primary:hover { background: #3a3327; border-color: var(--brass); }
+
+button.ghost { background: transparent; color: var(--text-dim); }
+button.ghost:hover { background: var(--raised); color: var(--text); }
+
+.split { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; }
+.split3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 5px; }
+.split button, .split3 button { margin-bottom: 5px; }
+
+.pair {
+  display: grid;
+  grid-template-columns: 62px 1fr;
+  gap: 5px;
+  align-items: start;
+}
+
+/* Segmented control */
+.seg {
+  display: flex;
+  margin-bottom: 6px;
+  border: 1px solid #3a3a3a;
+  border-radius: 2px;
+  overflow: hidden;
+}
+.seg button {
+  margin: 0;
+  border: 0;
+  border-right: 1px solid #3a3a3a;
+  border-radius: 0;
+  background: #262626;
+  color: var(--text-dim);
+  font-size: 10px;
+  padding: 5px 4px;
+}
+.seg button:last-child { border-right: 0; }
+.seg button.on { background: var(--raised-hi); color: var(--text); box-shadow: inset 0 -2px 0 var(--brass); }
+
+/* Inputs */
+input[type="number"], input[type="text"] {
+  width: 100%;
+  padding: 5px 6px;
+  background: #171717;
+  color: var(--text);
+  border: 1px solid #3a3a3a;
+  border-radius: 2px;
+  font: 11px/1.2 var(--mono);
+  -webkit-user-select: text;
+  user-select: text;
+}
+input[type="number"]:focus, input[type="text"]:focus {
+  outline: none;
+  border-color: var(--brass-dim);
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 1fr 88px auto;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 7px;
+  color: var(--text-dim);
+}
+.row > span { font-size: 10px; }
+.row output { font: 10px/1 var(--mono); color: var(--brass); min-width: 22px; text-align: right; }
+
+.stack { display: block; }
+.stack > span {
+  display: block;
+  font-size: 9px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  margin-bottom: 3px;
+}
+
+.check {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 6px;
+  font-size: 10px;
+  color: var(--text-dim);
+  cursor: pointer;
+}
+.check input { accent-color: var(--brass); }
+
+input[type="range"] {
+  -webkit-appearance: none;
+  height: 3px;
+  background: #3a3a3a;
+  border-radius: 2px;
+}
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 11px; height: 11px;
+  border-radius: 50%;
+  background: var(--brass);
+  cursor: pointer;
+}
+
+.hint {
+  font-size: 10px;
+  line-height: 1.4;
+  color: var(--text-faint);
+  margin: 4px 0 8px;
+}
+
+/* ---- Status ----------------------------------------------------------- */
+
+.status {
+  position: fixed;
+  left: 0; right: 0; bottom: 0;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  padding: 0 10px;
+  background: #161616;
+  border-top: 1px solid var(--rule);
+  font-size: 10px;
+  color: var(--text-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.status.err { color: #d98166; }
+.status.ok { color: var(--brass); }
+
+@media (prefers-reduced-motion: reduce) {
+  * { transition: none !important; }
+}

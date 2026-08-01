@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Chisel</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<header class="bar">
+  <div class="mark">CHISEL</div>
+  <div class="readout" id="readout">
+    <span><b id="rPaths">0</b> paths</span>
+    <span><b id="rPts">0</b> pts</span>
+    <span><b id="rSel">0</b> sel</span>
+  </div>
+</header>
+
+<main id="scroll">
+
+  <!-- CLEAN ------------------------------------------------------------ -->
+  <section class="sec open" data-sec="clean">
+    <h2>Clean</h2>
+    <div class="body">
+      <label class="row">
+        <span>Tolerance</span>
+        <input type="range" id="srTol" min="1" max="100" value="10">
+        <output id="srTolOut" class="mono">10</output>
+      </label>
+      <p class="hint">Maximum curve deviation allowed when a point is dropped. 10 is about 0.5 pt.</p>
+      <button class="primary" data-cmd="smartRemove" data-args="smartRemoveArgs">Smart remove points</button>
+      <button data-cmd="smartRemove" data-args="dumbRemoveArgs">Remove without smoothing</button>
+      <div class="split">
+        <button data-cmd="removeRedundant">Remove redundant</button>
+        <button class="ghost" data-cmd="countRedundant" data-into="redCount">Count</button>
+      </div>
+      <p class="hint" id="redCount"></p>
+    </div>
+  </section>
+
+  <!-- POINTS ----------------------------------------------------------- -->
+  <section class="sec" data-sec="points">
+    <h2>Points</h2>
+    <div class="body">
+      <div class="split">
+        <button data-cmd="makeSmooth" data-args="smoothArgs">Smooth</button>
+        <button data-cmd="makeCorner">Corner</button>
+      </div>
+      <label class="row">
+        <span>Smoothing ratio</span>
+        <input type="number" id="smRatio" class="mono" value="0.4" step="0.05" min="0.05" max="2">
+      </label>
+      <div class="split">
+        <button data-cmd="retract" data-args="{swap:false}">Retract handles</button>
+        <button data-cmd="retract" data-args="{swap:true}">Swap in/out</button>
+      </div>
+      <div class="split">
+        <button data-cmd="equalize">Equalise lengths</button>
+        <button data-cmd="retractSegments">Straighten segment</button>
+      </div>
+      <div class="split3">
+        <button data-cmd="averagePoints" data-args="{axis:'both'}">Avg</button>
+        <button data-cmd="averagePoints" data-args="{axis:'x'}">Avg X</button>
+        <button data-cmd="averagePoints" data-args="{axis:'y'}">Avg Y</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- HANDLES ---------------------------------------------------------- -->
+  <section class="sec" data-sec="handles">
+    <h2>Handles</h2>
+    <div class="body">
+      <div class="seg" id="whichSeg">
+        <button class="on" data-val="both">Both</button>
+        <button data-val="in">In</button>
+        <button data-val="out">Out</button>
+      </div>
+      <div class="pair">
+        <input type="number" id="hScale" class="mono" value="80" step="5">
+        <button data-cmd="handleTransform" data-args="scaleArgs">Scale %</button>
+      </div>
+      <div class="pair">
+        <input type="number" id="hRot" class="mono" value="15" step="1">
+        <button data-cmd="handleTransform" data-args="rotArgs">Rotate&deg;</button>
+      </div>
+      <div class="pair">
+        <input type="number" id="hInc" class="mono" value="5" step="1">
+        <button data-cmd="handleTransform" data-args="incArgs">Increment</button>
+      </div>
+      <div class="pair">
+        <input type="number" id="hLen" class="mono" value="40" step="1">
+        <button data-cmd="handleTransform" data-args="lenArgs">Set length</button>
+      </div>
+      <div class="pair">
+        <input type="number" id="hAng" class="mono" value="0" step="1">
+        <button data-cmd="handleTransform" data-args="angArgs">Set angle&deg;</button>
+      </div>
+      <p class="hint">Hold nothing, click once. Values apply to every selected anchor.</p>
+    </div>
+  </section>
+
+  <!-- ADD POINTS ------------------------------------------------------- -->
+  <section class="sec" data-sec="add">
+    <h2>Add points</h2>
+    <div class="body">
+      <div class="seg" id="addSeg">
+        <button class="on" data-val="equal">Equal</button>
+        <button data-val="bezier">Bezier</button>
+        <button data-val="distance">Distance</button>
+      </div>
+      <label class="row"><span>Points per segment</span>
+        <input type="number" id="apCount" class="mono" value="1" min="1" max="200">
+      </label>
+      <label class="row"><span>Spacing (pt)</span>
+        <input type="number" id="apDist" class="mono" value="20" min="0.1" step="1">
+      </label>
+      <label class="check"><input type="checkbox" id="apCentre" checked><span>Centre within segment</span></label>
+      <button class="primary" data-cmd="addPoints" data-args="addArgs">Add points</button>
+      <p class="hint">Equal spaces by arc length. Bezier spaces by t parameter.</p>
+    </div>
+  </section>
+
+  <!-- TANGENCIES ------------------------------------------------------- -->
+  <section class="sec" data-sec="tan">
+    <h2>Tangencies</h2>
+    <div class="body">
+      <div class="seg" id="tanSeg">
+        <button class="on" data-val="both">Both</button>
+        <button data-val="h">Horizontal</button>
+        <button data-val="v">Vertical</button>
+      </div>
+      <button data-cmd="tangencies" data-args="tanAddArgs">Add points at tangencies</button>
+      <button data-cmd="tangencies" data-args="tanMoveArgs">Move points to tangencies</button>
+      <p class="hint">Move adds tangent points, then prunes every original the curve no longer needs.</p>
+    </div>
+  </section>
+
+  <!-- CORNERS ---------------------------------------------------------- -->
+  <section class="sec" data-sec="corners">
+    <h2>Corners</h2>
+    <div class="body">
+      <label class="row"><span>Radius (pt)</span>
+        <input type="number" id="cnRadius" class="mono" value="12" min="0.1" step="1">
+      </label>
+      <div class="seg" id="cnType">
+        <button class="on" data-val="regular">Regular</button>
+        <button data-val="negative">Negative</button>
+        <button data-val="chamfered">Chamfer</button>
+      </div>
+      <div class="seg" id="cnMethod">
+        <button class="on" data-val="trueRadius">True radius</button>
+        <button data-val="standard">Standard</button>
+        <button data-val="squircular">Squircular</button>
+      </div>
+      <button class="primary" data-cmd="applyCorners" data-args="cornerArgs">Apply corners</button>
+      <p class="hint">Select specific anchors to limit the effect, or none to treat the whole path.</p>
+    </div>
+  </section>
+
+  <!-- PATHS ------------------------------------------------------------ -->
+  <section class="sec" data-sec="paths">
+    <h2>Paths</h2>
+    <div class="body">
+      <div class="split3">
+        <button data-cmd="closePath" data-args="{mode:'honour'}">Close</button>
+        <button data-cmd="closePath" data-args="{mode:'straight'}">Close flat</button>
+        <button data-cmd="closePath" data-args="closeSmoothArgs">Close smooth</button>
+      </div>
+      <div class="split">
+        <button data-cmd="openPath">Open path</button>
+        <button data-cmd="reverse">Reverse direction</button>
+      </div>
+      <div class="split">
+        <button data-cmd="startAtPoint">Start at point</button>
+        <button data-cmd="splitAtPoints">Split at points</button>
+      </div>
+      <button data-cmd="connectSmooth" data-args="closeSmoothArgs">Connect two paths smoothly</button>
+
+      <h3>Intersections</h3>
+      <label class="check"><input type="checkbox" id="pxSelf"><span>Ignore self-intersections</span></label>
+      <label class="check"><input type="checkbox" id="pxTop"><span>Only against topmost path</span></label>
+      <label class="check"><input type="checkbox" id="pxKeep"><span>Leave topmost path untouched</span></label>
+      <button data-cmd="pathIntersections" data-args="pxArgs">Add points at intersections</button>
+    </div>
+  </section>
+
+  <!-- SELECT ----------------------------------------------------------- -->
+  <section class="sec" data-sec="select">
+    <h2>Select</h2>
+    <div class="body">
+      <div class="split3">
+        <button data-cmd="selectPoints" data-args="{mode:'corner'}">Corners</button>
+        <button data-cmd="selectPoints" data-args="{mode:'smooth'}">Smooth</button>
+        <button data-cmd="selectPoints" data-args="{mode:'all'}">All</button>
+      </div>
+      <div class="split3">
+        <button data-cmd="selectPoints" data-args="{mode:'grow'}">Grow</button>
+        <button data-cmd="selectPoints" data-args="{mode:'shrink'}">Shrink</button>
+        <button data-cmd="selectPoints" data-args="{mode:'invert'}">Invert</button>
+      </div>
+      <h3>Pattern</h3>
+      <div class="split3">
+        <label class="stack"><span>Skip first</span><input type="number" id="sSkip0" class="mono" value="0" min="0"></label>
+        <label class="stack"><span>Take</span><input type="number" id="sTake" class="mono" value="1" min="1"></label>
+        <label class="stack"><span>Skip</span><input type="number" id="sSkip" class="mono" value="1" min="0"></label>
+      </div>
+      <button data-cmd="selectPoints" data-args="patternArgs">Apply pattern</button>
+    </div>
+  </section>
+
+  <!-- GENERATE --------------------------------------------------------- -->
+  <section class="sec" data-sec="gen">
+    <h2>Generate</h2>
+    <div class="body">
+      <h3>Roulette</h3>
+      <div class="seg" id="roKind">
+        <button class="on" data-val="hypo">Hypotrochoid</button>
+        <button data-val="epi">Epitrochoid</button>
+      </div>
+      <div class="split">
+        <label class="stack"><span>Ratio R</span><input type="number" id="roR1" class="mono" value="10" min="1" max="200"></label>
+        <label class="stack"><span>Ratio S</span><input type="number" id="roS1" class="mono" value="3" min="1" max="200"></label>
+      </div>
+      <div class="split">
+        <label class="stack"><span>R start</span><input type="number" id="roRa" class="mono" value="200"></label>
+        <label class="stack"><span>R end</span><input type="number" id="roRb" class="mono" value="200"></label>
+      </div>
+      <div class="split">
+        <label class="stack"><span>D start %</span><input type="number" id="roDa" class="mono" value="100"></label>
+        <label class="stack"><span>D end %</span><input type="number" id="roDb" class="mono" value="100"></label>
+      </div>
+      <div class="split3">
+        <label class="stack"><span>Count</span><input type="number" id="roCount" class="mono" value="1" min="1" max="2000"></label>
+        <label class="stack"><span>Rotate&deg;</span><input type="number" id="roRot" class="mono" value="0" step="0.5"></label>
+        <label class="stack"><span>Weight</span><input type="number" id="roW" class="mono" value="0.5" step="0.25"></label>
+      </div>
+      <label class="row"><span>Accuracy</span>
+        <input type="range" id="roAcc" min="1" max="5" value="3">
+        <output id="roAccOut" class="mono">3</output>
+      </label>
+      <label class="check"><input type="checkbox" id="roCentre" checked><span>Centre on screen</span></label>
+      <button class="primary" data-cmd="roulette" data-args="rouletteArgs">Create roulette</button>
+
+      <h3>Delaunay</h3>
+      <div class="seg" id="dlSrc">
+        <button class="on" data-val="anchors">From anchors</button>
+        <button data-val="centres">From centres</button>
+      </div>
+      <label class="row"><span>Drop angles below&deg;</span>
+        <input type="number" id="dlAngle" class="mono" value="0" min="0" max="60">
+      </label>
+      <label class="check"><input type="checkbox" id="dlKeep" checked><span>Keep original artwork</span></label>
+      <button data-cmd="delaunay" data-args="delaunayArgs">Triangulate</button>
+    </div>
+  </section>
+
+</main>
+
+<footer class="status" id="status">Select a path to begin.</footer>
+
+<script src="js/CSInterface.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>
