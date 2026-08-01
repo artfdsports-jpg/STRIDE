@@ -88,3 +88,26 @@ Four real bugs caught here:
   already satisfied, and there is a test that fails if that regresses.
 
 `npm test` runs all three suites. 161 assertions, all passing.
+
+### P4 - live point inspector (done)
+`jsx/chisel-inspector.jsx`. The numeric half of a path tool: anchor X/Y, both
+handle lengths and angles, adjoining segment lengths, curvature radius either
+side of the anchor, path length and enclosed area - all readable, all typable.
+
+Two conventions, both matching what the user sees rather than what the DOM
+stores: coordinates are artboard-relative with Y increasing downward, and
+angles are measured in that same flipped space. Everything crossing that
+boundary is converted in one place.
+
+Typed values apply to the whole anchor selection, which is what makes typing
+one X into six anchors the fastest alignment tool in the program. Values that
+differ across the selection come back flagged as mixed rather than showing the
+first one.
+
+Also: nudge (anchor, or one handle alone), step through anchors, insert on a
+segment by arc length or by bezier t, match handle lengths/angles.
+
+Area uses Green's theorem with 3-point Gauss-Legendre, which is *exact* for
+cubics - shoelace over a sampled polygon under-reports a circle by 0.6%.
+
+`test-inspector.js`: 62 assertions. 223 total across four suites.
