@@ -17,7 +17,7 @@ const path = require('path');
 const html = fs.readFileSync(path.join(__dirname, 'index.html'), 'utf8');
 const main = fs.readFileSync(path.join(__dirname, 'js', 'main.js'), 'utf8');
 const jsxFiles = ['chisel.jsx', 'chisel-meta.jsx', 'chisel-tangency.jsx',
-                  'chisel-constraints.jsx', 'chisel-inspector.jsx'];
+                  'chisel-constraints.jsx', 'chisel-inspector.jsx', 'chisel-extend.jsx'];
 const jsx = jsxFiles.map(f => fs.readFileSync(path.join(__dirname, 'jsx', f), 'utf8')).join('\n');
 
 let pass = 0, fail = 0;

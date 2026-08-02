@@ -62,6 +62,10 @@
   initSeg("tkPick", "0");
   initSeg("tpSide", "1");
   initSeg("wMode", "shape");
+  initSeg("exMode", "bezier");
+  initSeg("exWhich", "end");
+  initSeg("skMode", "tangent");
+  initSeg("skSide", "both");
 
   // --- Argument builders -------------------------------------------------
   // Each returns a JS object literal STRING, because ExtendScript has no JSON.
@@ -173,8 +177,35 @@
       o.at = num("insAt", 0.5);
       o.mode = segState.insMode;
       return lit(o);
+    },
+
+    // --- Extend ---
+    // Extend and Trim are the same command. The length field is always a
+    // positive distance and the button decides the sign, because a field that
+    // silently means the opposite of what it says when you type a minus is a
+    // worse interface than two buttons.
+    extendArgs: function () { return extendLit(1); },
+    trimArgs: function () { return extendLit(-1); },
+
+    strikeArgs: function () {
+      return lit({
+        mode: segState.skMode,
+        side: segState.skSide,
+        length: num("skLen", 60),
+        at: num("skAt", 0),
+        lock: checked("skLock")
+      });
     }
   };
+
+  function extendLit(sign) {
+    return lit({
+      mode: segState.exMode,
+      which: segState.exWhich,
+      length: Math.abs(num("exLen", 20)) * sign,
+      winding: num("exWind", 0.2)
+    });
+  }
 
   // --- Dispatch ----------------------------------------------------------
 

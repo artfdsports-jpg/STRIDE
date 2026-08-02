@@ -1746,7 +1746,8 @@ CH.MODULES = [
     "chisel-meta.jsx",
     "chisel-tangency.jsx",
     "chisel-constraints.jsx",
-    "chisel-inspector.jsx"
+    "chisel-inspector.jsx",
+    "chisel-extend.jsx"
 ];
 
 CH.loaded = {};

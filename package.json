@@ -4,6 +4,6 @@
   "description": "Precision path tools and tangency constraints for Adobe Illustrator",
   "private": true,
   "scripts": {
-    "test": "node test-geometry.js && node test-tangency.js && node test-constraints.js && node test-inspector.js && node test-panel.js"
+    "test": "node test-geometry.js && node test-tangency.js && node test-constraints.js && node test-inspector.js && node test-extend.js && node test-panel.js"
   }
 }

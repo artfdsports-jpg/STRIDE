@@ -428,7 +428,8 @@ function conSolveAll(force) {
     var gen = [], welds = [], locks = [], i, e, r;
     for (i = 0; i < reg.list.length; i++) {
         e = reg.list[i];
-        if (e.kind === "tanlink" || e.kind === "tancircle" || e.kind === "tanline") { gen.push(e); }
+        if (e.kind === "tanlink" || e.kind === "tancircle" || e.kind === "tanline" ||
+            e.kind === "tanpath") { gen.push(e); }
         if (e.rec.weldTo) { welds.push(e); }
         if (e.rec.locks) { locks.push(e); }
     }
@@ -450,6 +451,13 @@ function conSolveAll(force) {
             if (e.kind === "tanlink") { r = conSolveLink(reg, e); }
             else if (e.kind === "tancircle") { r = conSolveTanCircle(reg, e); }
             else if (e.kind === "tanline") { r = conSolveTanLine(reg, e); }
+            // Lines struck tangent to a path are solved by the extend module.
+            // Checked by name rather than assumed present, so a document
+            // containing them still solves everything else if that module
+            // failed to load.
+            else if (e.kind === "tanpath") {
+                r = (typeof conSolveTanPath === "function") ? conSolveTanPath(reg, e) : "broken";
+            }
         } catch (err) { r = "broken"; }
         tally(r);
     }
@@ -804,6 +812,11 @@ CMD.constraintsInfo = function () {
         if (e.kind === "tanlink" || e.kind === "tanline" || e.kind === "tancircle") {
             links++;
             if (!conCircleOf(reg, e.rec.a) || (e.rec.b && !conCircleOf(reg, e.rec.b))) { broken++; }
+        } else if (e.kind === "tanpath") {
+            // A struck line's driver is any path, not necessarily a circle, so
+            // it is only broken when the driver is gone entirely.
+            links++;
+            if (!metaGet(reg, e.rec.a)) { broken++; }
         } else if (e.kind === "circle") { circles++; }
         if (e.rec.locks) { locks += metaSplitNums(metaS(e.rec, "locks", "")).length; }
         if (e.rec.weldTo) {

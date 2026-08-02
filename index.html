@@ -111,6 +111,62 @@
     </div>
   </section>
 
+  <!-- EXTEND ----------------------------------------------------------- -->
+  <section class="sec open" data-sec="extend">
+    <h2>Extend path</h2>
+    <div class="body">
+      <p class="hint">Continue an open path along its own direction. Works on every selected open path at once.</p>
+      <div class="seg" id="exMode">
+        <button class="on" data-val="bezier">Bezier</button>
+        <button data-val="radius">Arc</button>
+        <button data-val="straight">Straight</button>
+        <button data-val="spiral">Spiral</button>
+      </div>
+      <div class="seg" id="exWhich">
+        <button data-val="start">Start</button>
+        <button class="on" data-val="end">End</button>
+        <button data-val="both">Both ends</button>
+      </div>
+      <label class="row"><span>Length</span>
+        <input type="number" id="exLen" class="mono" value="20" step="1" min="0.01">
+      </label>
+      <label class="row"><span>Spiral winding</span>
+        <input type="number" id="exWind" class="mono" value="0.2" step="0.05" min="0" max="3">
+      </label>
+      <div class="split">
+        <button class="primary" data-cmd="extendPath" data-args="extendArgs">Extend</button>
+        <button data-cmd="extendPath" data-args="trimArgs">Trim</button>
+      </div>
+      <p class="hint"><b>Bezier</b> pushes the end segment's own curve further, adding no anchor. <b>Arc</b> continues at the curvature the path already has. <b>Spiral</b> starts at that curvature and opens out. Trim removes the same length from the same end, in any mode.</p>
+    </div>
+  </section>
+
+  <!-- STRIKE ----------------------------------------------------------- -->
+  <section class="sec" data-sec="strike">
+    <h2>Tangent from a path</h2>
+    <div class="body">
+      <p class="hint">Strike a line tangent to the path at a selected anchor. Locked, it follows when the path is edited.</p>
+      <div class="seg" id="skMode">
+        <button class="on" data-val="tangent">Tangent</button>
+        <button data-val="normal">Normal</button>
+      </div>
+      <div class="seg" id="skSide">
+        <button class="on" data-val="both">Both ways</button>
+        <button data-val="forward">Forward</button>
+        <button data-val="back">Back</button>
+      </div>
+      <label class="row"><span>Length</span>
+        <input type="number" id="skLen" class="mono" value="60" step="5" min="0.01">
+      </label>
+      <label class="row"><span>Along next segment</span>
+        <input type="number" id="skAt" class="mono" value="0" step="0.05" min="0" max="1">
+      </label>
+      <label class="check"><input type="checkbox" id="skLock" checked><span>Lock to the path</span></label>
+      <button class="primary" data-cmd="tangentLine" data-args="strikeArgs">Strike line</button>
+      <p class="hint">0 strikes at the anchor itself. Anything up to 1 walks that fraction of the way along the segment after it, by arc length, so you can strike anywhere on a curve. For tangents between two circles, see the Tangency tab.</p>
+    </div>
+  </section>
+
   <!-- CLEAN ------------------------------------------------------------ -->
   <section class="sec" data-sec="clean">
     <h2>Clean</h2>

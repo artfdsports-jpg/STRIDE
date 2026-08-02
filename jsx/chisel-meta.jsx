@@ -228,7 +228,8 @@ function metaScan(doc) {
         entry = { item: it, rec: rec, id: rec.id, kind: rec.kind };
         reg.byId[rec.id] = entry;
         reg.list.push(entry);
-        if (rec.kind === "tanlink" || rec.kind === "tancircle" || rec.kind === "tanline") {
+        if (rec.kind === "tanlink" || rec.kind === "tancircle" ||
+            rec.kind === "tanline" || rec.kind === "tanpath") {
             reg.links.push(entry);
         }
         reg.count++;
