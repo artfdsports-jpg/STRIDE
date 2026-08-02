@@ -168,6 +168,22 @@ ASErr ChiselTool::mouseDown(AIToolMessage* message) {
     // is picked up. Sub-pixel, but its absence is immediately noticeable.
     grabOffset_ = hover_.position - cursor;
 
+    /*
+     * Grabbing the terminal anchor of an open path extends it rather than
+     * moving it. That is unambiguous because an end anchor is the only place a
+     * path can grow from, and it means extending needs no separate tool and no
+     * mode switch: go to the end of the line and pull.
+     */
+    extending_ = false;
+    if (!target.ref.closed && hover_.kind == HitKind::Anchor && original_.size() >= 2) {
+        const bool atStart = (hover_.pointIndex == 0);
+        const bool atEnd = (hover_.pointIndex == original_.size() - 1);
+        if (atStart || atEnd) {
+            extendAtStart_ = atStart;
+            if (endFrame(original_, false, atStart, extendFrame_)) { extending_ = true; }
+        }
+    }
+
     // Is this anchor tangent-locked? Read once here rather than per mouse-move;
     // the dictionary does not change during a drag.
     grabLocked_ = false;
@@ -206,6 +222,7 @@ ASErr ChiselTool::mouseUp(AIToolMessage*) {
     if (!dragging_) { return kNoErr; }
     commit();
     dragging_ = false;
+    extending_ = false;
     dragArt_ = nullptr;
     hasSnap_ = false;
     refreshScene();
@@ -215,7 +232,129 @@ ASErr ChiselTool::mouseUp(AIToolMessage*) {
 
 // -------------------------------------------------------------- preview
 
+void ChiselTool::cycleExtendMode() {
+    switch (extendMode_) {
+        case ExtendMode::SingleBezier:   extendMode_ = ExtendMode::ConstantRadius; break;
+        case ExtendMode::ConstantRadius: extendMode_ = ExtendMode::Straight; break;
+        case ExtendMode::Straight:       extendMode_ = ExtendMode::Spiral; break;
+        default:                         extendMode_ = ExtendMode::SingleBezier; break;
+    }
+}
+
+void ChiselTool::nudgeSpiralWinding(double delta) {
+    spiralWinding_ += delta;
+    if (spiralWinding_ < 0.0) { spiralWinding_ = 0.0; }
+    if (spiralWinding_ > 3.0) { spiralWinding_ = 3.0; }
+}
+
+/*
+ * Extension preview. The drag distance is projected onto the outward tangent
+ * rather than taken as raw cursor distance, so pulling sideways does nothing
+ * and pulling back along the path shortens it. That projection is what makes
+ * the gesture feel like it is measuring a length instead of chasing the mouse.
+ */
+void ChiselTool::buildExtendPreview(const Vec2& cursor, const Modifiers& mods) {
+    const double amount = dot(cursor - extendFrame_.point, extendFrame_.tangent);
+
+    if (amount < 0.0) {
+        const PointList trimmed = trimEnd(original_, extendAtStart_, -amount);
+        preview_ = trimmed.empty() ? original_ : trimmed;
+        return;
+    }
+    if (amount < 1e-6) {
+        preview_ = original_;
+        return;
+    }
+
+    // Single bezier is not buildable as a run: it rewrites the terminal cubic
+    // rather than appending to it. The core exposes the other three as runs, so
+    // that mode is handled by extending the segment's parameter range here.
+    if (extendMode_ == ExtendMode::SingleBezier) {
+        preview_ = original_;
+        const std::size_t i = extendAtStart_ ? 0 : preview_.size() - 2;
+        const std::size_t j = i + 1;
+        const Cubic seg = segmentAt(preview_, i, false);
+
+        // A straight terminal segment stores retracted handles, which makes its
+        // cubic's derivative zero at the endpoint; extrapolated it turns round
+        // and comes back. Continue straight instead.
+        const Vec2 d1 = derivative(seg, extendAtStart_ ? 0.0 : 1.0);
+        if (!isStraight(seg) && length(d1) > 1e-6) {
+            const double base = arcLength(seg, 64);
+            const double want = base + amount;
+            // Bisection on the extrapolated parameter. Arc length grows fast and
+            // unevenly out there, and a Newton step off the end of a sharply
+            // curling extrapolation lands nowhere useful.
+            double lo = 1.0, hi = 1.05;
+            auto lengthTo = [&](double t) {
+                Cubic l, r;
+                split(seg, t, l, r);
+                return arcLength(l, 64);
+            };
+            for (int k = 0; k < 60 && lengthTo(hi) < want && hi < 1e4; ++k) { lo = hi; hi *= 2.0; }
+            for (int k = 0; k < 80; ++k) {
+                const double mid = (lo + hi) * 0.5;
+                if (lengthTo(mid) < want) { lo = mid; } else { hi = mid; }
+            }
+            Cubic grown, rest;
+            split(seg, (lo + hi) * 0.5, grown, rest);
+
+            // Extending the start is the same operation on a reversed path, so
+            // reverse, grow the end, reverse back.
+            if (extendAtStart_) {
+                PointList rev = reversed(original_);
+                const Cubic rseg = segmentAt(rev, rev.size() - 2, false);
+                double rlo = 1.0, rhi = 1.05;
+                auto rlen = [&](double t) {
+                    Cubic l, r;
+                    split(rseg, t, l, r);
+                    return arcLength(l, 64);
+                };
+                const double rwant = arcLength(rseg, 64) + amount;
+                for (int k = 0; k < 60 && rlen(rhi) < rwant && rhi < 1e4; ++k) { rlo = rhi; rhi *= 2.0; }
+                for (int k = 0; k < 80; ++k) {
+                    const double mid = (rlo + rhi) * 0.5;
+                    if (rlen(mid) < rwant) { rlo = mid; } else { rhi = mid; }
+                }
+                Cubic rg, rr;
+                split(rseg, (rlo + rhi) * 0.5, rg, rr);
+                const std::size_t k = rev.size() - 2;
+                rev[k].out = rg.p1;
+                rev[k + 1].in = rg.p2;
+                rev[k + 1].anchor = rg.p3;
+                rev[k + 1].out = rg.p3;
+                preview_ = reversed(rev);
+            } else {
+                preview_[i].out = grown.p1;
+                preview_[j].in = grown.p2;
+                preview_[j].anchor = grown.p3;
+                preview_[j].out = grown.p3;
+            }
+            return;
+        }
+        // Fall through to a straight run.
+        const PointList run = buildExtension(extendFrame_, ExtendMode::Straight, amount, spiralWinding_);
+        const PointList joined = attachExtension(original_, run, extendAtStart_);
+        preview_ = joined.empty() ? original_ : joined;
+        return;
+    }
+
+    const PointList run = buildExtension(extendFrame_, extendMode_, amount, spiralWinding_);
+    const PointList joined = attachExtension(original_, run, extendAtStart_);
+    preview_ = joined.empty() ? original_ : joined;
+
+    // Command suspends snapping; nothing else about extension consults it, so
+    // the flag is only read to keep the behaviour uniform with the other drags.
+    (void)mods;
+}
+
 void ChiselTool::buildPreview(const Vec2& rawTarget, const Modifiers& mods) {
+    if (extending_) {
+        hasSnap_ = false;
+        buildExtendPreview(rawTarget, mods);
+        return;
+    }
+
     preview_ = original_;
     hasSnap_ = false;
 
@@ -382,6 +521,7 @@ void ChiselTool::cancelDrag() {
         writePath(dragArt_, original_, previewClosed_);
     }
     dragging_ = false;
+    extending_ = false;
     dragArt_ = nullptr;
     hasSnap_ = false;
 }
@@ -497,7 +637,37 @@ ASErr ChiselTool::drawAnnotation(AIAnnotatorMessage* message) {
         g.drawer->DrawRect(d, box, hover_.kind == HitKind::Anchor);
     }
 
+    // The limit tick: a short line across the end of an open path, marking
+    // where it currently stops. It is what tells the user this anchor extends
+    // rather than moves, before they commit to the drag and find out.
+    drawEndTick(d);
     return kNoErr;
+}
+
+void ChiselTool::drawEndTick(AIAnnotatorDrawer* d) {
+    EndFrame frame;
+    bool have = false;
+
+    if (extending_) {
+        frame = extendFrame_;
+        have = true;
+    } else if (!dragging_ && hover_.kind == HitKind::Anchor &&
+               hover_.pathIndex < paths_.size()) {
+        const PathRef& ref = paths_[hover_.pathIndex].ref;
+        if (!ref.closed && ref.points.size() >= 2 &&
+            (hover_.pointIndex == 0 || hover_.pointIndex == ref.points.size() - 1)) {
+            have = endFrame(ref.points, false, hover_.pointIndex == 0, frame);
+        }
+    }
+    if (!have) { return; }
+
+    g.drawer->SetColor(d, snapColor());
+    const Vec2 across(-frame.tangent.y, frame.tangent.x);
+    const double half = pixels(7.0);
+    g.drawer->DrawLine(d,
+                       artworkToView(frame.point - across * half),
+                       artworkToView(frame.point + across * half),
+                       false);
 }
 
 }  // namespace chisel

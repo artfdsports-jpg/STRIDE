@@ -505,6 +505,143 @@ int main() {
            tangentSnapToCircle(c, c.centre, p, dir) && near(distance(p, c.centre), 50.0, 1e-9));
     }
 
+    std::printf("\n[13] Extending a path\n");
+    {
+        // A bezier quarter circle of radius 100, from (100,0) to (0,100).
+        auto quarter = [](double r) {
+            PointList pts;
+            PathPoint a;
+            a.anchor = Vec2(r, 0); a.in = Vec2(r, 0); a.out = Vec2(r, kKappa * r);
+            a.smooth = true;
+            PathPoint b;
+            b.anchor = Vec2(0, r); b.in = Vec2(kKappa * r, r); b.out = Vec2(0, r);
+            b.smooth = true;
+            pts.push_back(a);
+            pts.push_back(b);
+            return pts;
+        };
+
+        EndFrame f;
+        ok("end frame read", endFrame(quarter(100), false, false, f));
+        ok("it is recognised as curved", f.curved);
+        // The pointwise curvature at the endpoint of a kappa arc is 102.19,
+        // 2.2% off. Fitting the segment recovers what was drawn.
+        ok("radius comes from the fit, not the pointwise curvature",
+           std::fabs(f.radius - 100.0) < 0.5, num(f.radius));
+        ok("centre is at the origin", length(f.centre) < 0.5, num(length(f.centre)));
+        ok("outward tangent is vertical at (0,100)",
+           std::fabs(f.tangent.x + 1.0) < 1e-6, num(f.tangent.x));
+
+        EndFrame s;
+        ok("the start end reads too", endFrame(quarter(100), false, true, s));
+        ok("both ends agree on the centre", distance(s.centre, f.centre) < 0.5);
+        // Not "opposite to the end tangent" - on a quarter circle those are at
+        // right angles. The property that matters is that each outward tangent
+        // points away from the rest of the path.
+        const Vec2 chord = normalize(quarter(100)[1].anchor - quarter(100)[0].anchor);
+        ok("the start tangent points away from the path", dot(s.tangent, chord) < 0.0,
+           num(dot(s.tangent, chord)));
+        ok("the end tangent points away from the path", dot(f.tangent, chord) > 0.0,
+           num(dot(f.tangent, chord)));
+
+        // Constant radius: every point of the extension stays on the circle.
+        const PointList run = buildExtension(f, ExtendMode::ConstantRadius, 100, 0.2);
+        ok("arc extension built", run.size() >= 2);
+        const PointList joined = attachExtension(quarter(100), run, false);
+        ok("attached without duplicating the endpoint",
+           joined.size() == quarter(100).size() + run.size() - 1, num(joined.size()));
+
+        double worst = 0.0;
+        for (std::size_t i = 0; i + 1 < joined.size(); ++i) {
+            const Cubic c = segmentAt(joined, i, false);
+            for (double t = 0.0; t <= 1.0001; t += 0.1) {
+                worst = std::max(worst, std::fabs(length(evaluate(c, t)) - 100.0));
+            }
+        }
+        ok("the extension stays on the circle it was drawn from", worst < 0.15, num(worst));
+        ok("and the path is 100 longer",
+           std::fabs(pathLength(joined, false) - (kPi * 50.0 + 100.0)) < 0.2,
+           num(pathLength(joined, false)));
+
+        // The join must be tangent continuous. bezTangent-style, because a
+        // straight run stores retracted handles and d1 is then exactly zero.
+        const Cubic before = segmentAt(joined, 0, false);
+        const Cubic after = segmentAt(joined, 1, false);
+        ok("the join is tangent continuous",
+           std::fabs(cross(tangentAt(before, 1.0), tangentAt(after, 0.0))) < 1e-5 &&
+           dot(tangentAt(before, 1.0), tangentAt(after, 0.0)) > 0.0);
+
+        // Straight.
+        const PointList st = buildExtension(f, ExtendMode::Straight, 40, 0.2);
+        ok("straight extension is two points", st.size() == 2, num(st.size()));
+        ok("leaving along the end tangent",
+           distance(st.back().anchor, f.point + f.tangent * 40.0) < 1e-9);
+
+        // Spiral: curvature matched at the join, opening out after.
+        const PointList sp = buildExtension(f, ExtendMode::Spiral, 200, 0.3);
+        ok("spiral extension built", sp.size() >= 3, num(sp.size()));
+        if (sp.size() >= 3) {
+            const Cubic first = segmentAt(sp, 0, false);
+            const Cubic last = segmentAt(sp, sp.size() - 2, false);
+            const double r0 = curvatureRadius(first, 0.0);
+            const double r1 = curvatureRadius(last, 1.0);
+            ok("spiral starts at the matched curvature", std::fabs(r0 - 100.0) < 8.0, num(r0));
+            ok("and opens out", r1 > r0 * 1.5, num(r1) + " vs " + num(r0));
+        }
+        ok("zero winding falls back to the arc rather than dividing by it",
+           !buildExtension(f, ExtendMode::Spiral, 100, 0.0).empty());
+
+        // A straight path has no curvature to continue.
+        PointList line = polyline({Vec2(0, 0), Vec2(100, 0)});
+        EndFrame lf;
+        ok("a straight end reads a frame", endFrame(line, false, false, lf));
+        ok("and reports itself as flat", !lf.curved);
+        const PointList lr = buildExtension(lf, ExtendMode::ConstantRadius, 50, 0.2);
+        ok("radius mode on a straight path extends straight",
+           lr.size() == 2 && distance(lr.back().anchor, Vec2(150, 0)) < 1e-9,
+           num(lr.size()));
+    }
+
+    std::printf("\n[14] Trimming\n");
+    {
+        const PointList line = polyline({Vec2(0, 0), Vec2(100, 0), Vec2(200, 0), Vec2(300, 0)});
+
+        PointList t = trimEnd(line, false, 50);
+        ok("trimmed from the end", t.size() == 4, num(t.size()));
+        ok("to the right length", std::fabs(pathLength(t, false) - 250.0) < 0.01,
+           num(pathLength(t, false)));
+
+        t = trimEnd(line, false, 150);
+        ok("a trim spanning a segment drops its anchor", t.size() == 3, num(t.size()));
+        ok("and lands in the right place", std::fabs(t.back().anchor.x - 150.0) < 0.01,
+           num(t.back().anchor.x));
+
+        t = trimEnd(line, true, 60);
+        ok("trimming from the start moves the start",
+           std::fabs(t.front().anchor.x - 60.0) < 0.01, num(t.front().anchor.x));
+        ok("and leaves the far end alone", std::fabs(t.back().anchor.x - 300.0) < 1e-9);
+
+        ok("trimming everything leaves nothing rather than a broken path",
+           trimEnd(line, false, 400).empty());
+    }
+
+    std::printf("\n[15] Reversal\n");
+    {
+        PointList pts = polyline({Vec2(0, 0), Vec2(100, 0), Vec2(200, 50)});
+        pts[1].in = Vec2(70, 0);
+        pts[1].out = Vec2(130, 10);
+
+        const PointList r = reversed(pts);
+        ok("order is reversed", distance(r.front().anchor, Vec2(200, 50)) < 1e-12 &&
+                                distance(r.back().anchor, Vec2(0, 0)) < 1e-12);
+        // Handles have to swap with the points, or every curve mirrors itself.
+        ok("handles swap with the points",
+           distance(r[1].in, Vec2(130, 10)) < 1e-12 && distance(r[1].out, Vec2(70, 0)) < 1e-12,
+           num(r[1].in.x));
+        ok("reversing twice is the identity",
+           distance(reversed(r)[1].in, pts[1].in) < 1e-12);
+    }
+
     std::printf("\n=== %d passed, %d failed ===\n", passed, failed);
     return failed ? 1 : 0;
 }

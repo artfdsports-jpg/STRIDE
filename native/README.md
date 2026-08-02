@@ -8,7 +8,7 @@ Be clear about this before you start, because the two halves of this directory
 have very different standing.
 
 **`core/` is verified.** It contains no Illustrator types at all, builds with any
-C++17 compiler, and ships 88 assertions that run in about a second:
+C++17 compiler, and ships 121 assertions that run in about a second:
 
 ```bash
 cmake -S native/core -B native/core/build
@@ -55,7 +55,7 @@ and a tool.
 core/                platform-agnostic, zero Illustrator types, fully tested
   ChiselGeom.*       vectors, cubics, circle fit, tangents, arcs, belts, area
   ChiselHit.*        hit testing, snapping, coincidence hashing, constraints
-  test/CoreTests.cpp 88 assertions
+  test/CoreTests.cpp 121 assertions
 src/                 the SDK bridge; needs the Illustrator SDK to compile
   ChiselSuites.*     suite acquisition, as a table so release mirrors acquire
   ChiselBridge.*     AIArt <-> core geometry, and the parametric metadata
@@ -122,6 +122,19 @@ locks that hold handles collinear during a drag with Option to suspend, a
 flattened live preview, dirty-rect invalidation, and writing the resulting lock
 back into the same dictionary format the panel reads.
 
+Path extension is folded into the same tool rather than given its own: grabbing
+the terminal anchor of an open path continues it instead of moving it. That is
+unambiguous, because an end anchor is the only place a path can grow from, so
+the gesture needs no mode switch. The drag distance is projected onto the
+outward tangent, so pulling sideways does nothing and pulling back shortens -
+which makes the gesture feel like it is measuring a length rather than chasing
+the mouse. A limit tick is drawn across the end on hover, so the user can see
+the anchor will extend before committing to the drag.
+
+`cycleExtendMode` and `nudgeSpiralWinding` are public and unwired: they are what
+the E key and the arrow keys should call, and that binding is the letter-key
+gap described above.
+
 Still to come, in the order they earn their keep:
 
 - **Point reduction brush.** `fitRemoval` ports across unchanged from
@@ -130,9 +143,8 @@ Still to come, in the order they earn their keep:
 - **Parametric corners.** Annotated radius handles, Alt-marquee creation across
   unselected paths, proportional multi-corner editing.
 - **Parametric shapes.** The annotated control system from corners carries over.
-- **Measurement and path extension.** Persistent measures saved into the
-  document, curve normals and evolutes, extension by single bezier, constant
-  radius, straight and logarithmic spiral.
+- **Measurement.** Persistent measures saved into the document, hover readouts,
+  curve normals and evolutes. Path extension was on this list and is now built.
 - **Live effects.** `AILiveEffectSuite`, for non-destructive corners and point
   reduction.
 

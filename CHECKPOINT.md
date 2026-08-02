@@ -168,6 +168,38 @@ constraints survive moving between the panel and the plugin.
 README rewritten around what 2.0 actually is, leading with the two-circles
 workflow. Manifest and engine both at 2.0.0.
 
+### P8 - Extend Path (done)
+`jsx/chisel-extend.jsx`, plus extension geometry in `native/core/ChiselHit.*`
+and endpoint-drag extension in the native tool.
+
+Four modes: single bezier (push the terminal cubic's parameter range past t=1,
+adding no anchor), constant radius arc, straight, logarithmic spiral. Negative
+length trims in every mode. Whole selection at once; closed paths skipped and
+counted. Plus tangent and normal lines struck off a path, lockable to it - new
+constraint kind `tanpath`.
+
+The spiral avoids integrating anything: substituting rho0 = r0 sqrt(1+b^2) into
+the log spiral's arc length collapses the inversion to th(s) = ln(1 + s b/rho0)/b.
+
+Two bugs the tests forced out, both worth knowing about:
+
+- **Arc extension must take its radius from a circle fitted to the terminal
+  segment, not the pointwise curvature there.** A bezier quarter circle's
+  endpoint curvature radius is 1.5k^2/(r-k) = 1.0219r - 2.2% larger than the
+  circle it draws. That is inherent to the kappa approximation, so an extension
+  built on it drifts a full point off a 100pt radius over one radian. Only the
+  magnitude comes from the fit; the centre sits on the exact normal so the join
+  stays perfectly tangent.
+- **A plain two-point line cannot be extrapolated.** Both handles retracted
+  makes its cubic x(t) = 300t^2 - 200t^3, whose derivative is *zero* at t=1.
+  Pushed past there it turns round: a 400pt extension of a line running right
+  arrived 300pt to the left. Bezier mode detects this and continues straight.
+
+Also: `test-panel.js` caught the new module missing from its own jsx list, which
+is exactly what that suite is for.
+
+326 JavaScript assertions across six suites, 121 native.
+
 ## Known limits, stated plainly
 
 - **Each constraint rebuild is one undo step.** Illustrator gives extensions no

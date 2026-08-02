@@ -123,6 +123,51 @@ bool enforceSmooth(PointList& pts, std::size_t index);
 // there. Returns false if the circle is degenerate.
 bool tangentSnapToCircle(const Circle& c, const Vec2& query, Vec2& outPoint, Vec2& outDirection);
 
+// ------------------------------------------------------------- extending
+
+// How a path is continued past its end.
+enum class ExtendMode {
+    SingleBezier,     // push the terminal cubic's parameter range past t=1
+    ConstantRadius,   // a circular arc at the curvature the path already has
+    Straight,         // a straight run along the end tangent
+    Spiral            // a logarithmic spiral starting at that curvature
+};
+
+// Everything needed to continue a path from one of its ends.
+struct EndFrame {
+    Vec2 point;              // the endpoint
+    Vec2 tangent;            // unit, pointing outward, away from the path
+    double radius = 0.0;     // radius of curvature; huge where the end is flat
+    Vec2 centre;             // centre of curvature
+    bool curved = false;     // false when there is no curvature to continue
+};
+
+// Read the frame at one end of an open path.
+//
+// The curvature radius comes from a circle fitted to the terminal segment where
+// that segment is genuinely circular, not from the pointwise curvature. A
+// bezier quarter circle's endpoint curvature is 2.2% larger than the circle it
+// draws, which is inherent to the four-cubic approximation, and an arc built on
+// it drifts visibly off the shape the user can see.
+bool endFrame(const PointList& pts, bool closed, bool atStart, EndFrame& out);
+
+// Build the run that continues a path, starting at the frame's own endpoint.
+// Empty when the mode cannot be built.
+PointList buildExtension(const EndFrame& frame, ExtendMode mode, double length,
+                         double spiralWinding);
+
+// Join a run built outward from an end back onto the path. The run's first
+// point coincides with the existing endpoint and is merged into it rather than
+// duplicated.
+PointList attachExtension(const PointList& pts, const PointList& run, bool atStart);
+
+// Shorten from one end by an arc length, dropping whole segments and splitting
+// the one the cut lands in. Empty if nothing would be left.
+PointList trimEnd(const PointList& pts, bool atStart, double amount);
+
+// Reverse a run, swapping each point's in and out handles with it.
+PointList reversed(const PointList& pts);
+
 }  // namespace chisel
 
 #endif  // CHISEL_HIT_H

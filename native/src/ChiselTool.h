@@ -97,6 +97,25 @@ private:
     // Whether the grabbed anchor carries a tangent lock, read once at mouse
     // down from the art dictionary.
     bool grabLocked_ = false;
+
+    // Extension. Grabbing the terminal anchor of an open path continues it
+    // instead of moving it, which is the behaviour of a separate tool in
+    // VectorScribe and is folded in here: the gesture is unambiguous, because
+    // an end anchor is the only place a path can grow from.
+    bool extending_ = false;
+    bool extendAtStart_ = false;
+    ExtendMode extendMode_ = ExtendMode::SingleBezier;
+    double spiralWinding_ = 0.2;
+    EndFrame extendFrame_;
+
+    void buildExtendPreview(const Vec2& cursor, const Modifiers& mods);
+    void drawEndTick(AIAnnotatorDrawer* d);
+
+public:
+    // Cycled by the E key, matching the shortcut users already have in their
+    // fingers. Wired from the plugin's key handling, which is why it is public.
+    void cycleExtendMode();
+    void nudgeSpiralWinding(double delta);
 };
 
 extern ChiselTool gTool;

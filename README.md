@@ -41,6 +41,44 @@ geometry alone. Separate them again and it recovers.
 
 ---
 
+## Extending a path
+
+Path tab, **Extend path**. Select any open paths and continue them along their
+own direction. Four modes, because those are the four things "continue this
+path" can sensibly mean:
+
+- **Bezier** — the terminal cubic's parameter range is pushed past its end. No
+  anchor is added; the curve you already drew simply gets longer, following
+  exactly the shape its own control points imply.
+- **Arc** — a circular arc continuing the curvature the path already has there.
+  Curvature continuous, not merely smooth, so there is no visible flat spot at
+  the join.
+- **Straight** — a straight run along the end tangent.
+- **Spiral** — a logarithmic spiral that starts at the path's own curvature and
+  opens out at the winding rate you set.
+
+**Trim** takes the same length off the same end, in any mode, splitting a
+segment or dropping whole ones as needed. That is how you cut something back to
+a measured length instead of guessing with the direct selection tool.
+
+Every selected open path is extended at once, by the same amount — a technical
+drawing has a dozen leader lines that all want to reach the same margin, and
+doing them one at a time is how a feature stops getting used. Closed paths in
+the selection are skipped and counted rather than silently ignored.
+
+## Striking a tangent off a path
+
+Path tab, **Tangent from a path**. Select an anchor and strike a tangent — or a
+normal — from it, in either direction or both. Set *along next segment* above
+zero to strike from a point part way along the curve instead of at the anchor,
+positioned by arc length.
+
+Locked, the line follows when the path it was struck from is edited: move the
+path, reshape it, drag the anchor, and the tangent stays tangent.
+
+For tangents *between two circles* rather than off a single path, see the
+Tangency tab.
+
 ## The path tool
 
 The Path tab is a live readout of the anchor you have selected, and every value
@@ -174,7 +212,7 @@ That is the point of loading them separately.
 
 | Tab | Operations |
 |---|---|
-| **Path** | Live point inspector, nudge, step, insert on segment, match handles. Point reduction (tolerance-driven, handle-compensated). Smooth, corner, retract, swap, equalise, straighten, average. Handle scale/rotate/increment/set length/set angle. Add points by equal arc length, bezier *t*, or fixed distance |
+| **Path** | Live point inspector, nudge, step, insert on segment, match handles. Extend or trim open paths in four modes. Strike tangents and normals off a path. Point reduction (tolerance-driven, handle-compensated). Smooth, corner, retract, swap, equalise, straighten, average. Handle scale/rotate/increment/set length/set angle. Add points by equal arc length, bezier *t*, or fixed distance |
 | **Tangency** | Connect circles, tangent circle, tangent from a point, tangent continuity locks, welds, sync. Axis tangencies: add points where a curve runs level or upright, or move existing points there |
 | **Shape** | Corners in regular, negative and chamfered types across true radius, standard and squircular methods. Close/open/reverse/split/connect. Add points at path intersections. Select by corner, smooth, grow, shrink, invert, or a skip/take pattern |
 | **Make** | Roulette curves (epitrochoid and hypotrochoid, single or interpolated series), Delaunay triangulation |
@@ -221,8 +259,9 @@ to modifier keys mid-gesture cannot be built in CEP — Illustrator exposes tool
 tracking and canvas annotation only through the C++ SDK, and UXP is still not
 publicly available for Illustrator. `native/` holds that layer.
 
-Its geometry core is real and tested: 88 assertions, builds anywhere with a
-C++17 compiler, no SDK required. The SDK bridge is written but has never been
+Its geometry core is real and tested: 121 assertions, builds anywhere with a
+C++17 compiler, no SDK required. In the native tool, dragging the end anchor of
+an open path extends it live rather than moving it, with the same four modes. The SDK bridge is written but has never been
 compiled, because building it needs Adobe's SDK, which cannot be redistributed.
 `native/README.md` is explicit about which is which.
 
@@ -231,9 +270,9 @@ compiled, because building it needs Adobe's SDK, which cannot be redistributed.
 ## Development
 
 ```bash
-npm test                                    # 246 assertions, five suites
+npm test                                    # 326 assertions, six suites
 
-cmake -S native/core -B native/core/build   # 88 more, no SDK needed
+cmake -S native/core -B native/core/build   # 121 more, no SDK needed
 cmake --build native/core/build
 ./native/core/build/chisel_core_tests
 ```
